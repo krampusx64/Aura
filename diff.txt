@@ -1,0 +1,343 @@
+commit aacdf5da027524547bf49ac2b1ac0769de5232c4
+Author: Andreas Jakob <andreasjakob@gmx.de>
+Date:   Tue Mar 3 13:16:16 2026 +0100
+
+    Refactoring: consolidate Agent Execution Loop and split personality heuristics
+
+diff --git a/internal/server/handlers.go b/internal/server/handlers.go
+index fc05cae..98c4af3 100644
+--- a/internal/server/handlers.go
++++ b/internal/server/handlers.go
+@@ -3,7 +3,6 @@ package server
+ import (
+ 	"context"
+ 	"encoding/json"
+-	"errors"
+ 	"fmt"
+ 	"io"
+ 	"net/http"
+@@ -18,7 +17,6 @@ import (
+ 	"aurago/internal/llm"
+ 	"aurago/internal/memory"
+ 	"aurago/internal/prompts"
+-	"aurago/internal/security"
+ 	"aurago/internal/tools"
+ 
+ 	"github.com/google/uuid"
+@@ -26,8 +24,8 @@ import (
+ )
+ 
+ var (
+-	followUpDepth int
+-	muFollowUp    sync.Mutex
++	followUpDepths = make(map[string]int)
++	muFollowUp     sync.Mutex
+ )
+ 
+ func handleChatCompletions(s *Server, sse *SSEBroadcaster) http.HandlerFunc {
+@@ -59,14 +57,15 @@ func handleChatCompletions(s *Server, sse *SSEBroadcaster) http.HandlerFunc {
+ 
+ 		// Check for Follow-Up loop protection
+ 		isFollowUp := r.Header.Get("X-Internal-FollowUp") == "true"
++		followUpKey := "default" // sessionID is resolved later; hardcoded for now
+ 		muFollowUp.Lock()
+ 		if !isFollowUp {
+-			followUpDepth = 0 // Reset on real user request
++			followUpDepths[followUpKey] = 0 // Reset on real user request
+ 		} else {
+-			followUpDepth++
+-			if followUpDepth > 10 {
++			followUpDepths[followUpKey]++
++			if followUpDepths[followUpKey] > 10 {
+ 				muFollowUp.Unlock()
+-				s.Logger.Warn("Blocked follow_up execution to prevent infinite loop", "depth", followUpDepth)
++				s.Logger.Warn("Blocked follow_up execution to prevent infinite loop", "depth", followUpDepths[followUpKey])
+ 				http.Error(w, `{"error": "Follow-up circuit breaker tripped. Max recursion depth reached."}`, http.StatusTooManyRequests)
+ 				return
+ 			}
+@@ -173,6 +172,11 @@ func handleChatCompletions(s *Server, sse *SSEBroadcaster) http.HandlerFunc {
+ 				if len(messagesToSummarize) > 0 {
+ 					go func(msgs []memory.HistoryMessage, charsPruned int, existingSummary string) {
+ 						defer s.HistoryManager.UnlockCompression()
++						defer func() {
++							if r := recover(); r != nil {
++								s.Logger.Error("[Compression] Goroutine panic recovered", "error", r)
++							}
++						}()
+ 						s.Logger.Info("[Compression] Triggering character-based context compression",
+ 							"msg_count", len(msgs), "chars", charsPruned, "limit", charLimit)
+ 
+@@ -305,10 +309,53 @@ func handleChatCompletions(s *Server, sse *SSEBroadcaster) http.HandlerFunc {
+ 
+ 		req.Messages = finalMessages
+ 
++		// 4. Pass execution to the unified agent loop
++		runCfg := agent.RunConfig{
++			Config:          s.Cfg,
++			Logger:          s.Logger,
++			LLMClient:       s.LLMClient,
++			ShortTermMem:    s.ShortTermMem,
++			HistoryManager:  s.HistoryManager,
++			LongTermMem:     s.LongTermMem,
++			KG:              s.KG,
++			InventoryDB:     s.InventoryDB,
++			Vault:           s.Vault,
++			Registry:        s.Registry,
++			Manifest:        manifest,
++			CronManager:     s.CronManager,
++			CoAgentRegistry: s.CoAgentRegistry,
++			BudgetTracker:   s.BudgetTracker,
++			SessionID:       sessionID,
++			IsMaintenance:   inMaintenance,
++			SurgeryPlan:     "", // UI-driven chats don't currently pass a formal surgery plan
++		}
++
+ 		if req.Stream {
+-			handleStreamedCompletion(s, w, r.Context(), req, sessionID, sse)
++			w.Header().Set("Content-Type", "text/event-stream")
++			w.Header().Set("Cache-Control", "no-cache")
++			w.Header().Set("Connection", "keep-alive")
++
++			flusher, ok := w.(http.Flusher)
++			if !ok {
++				s.Logger.Error("Streaming not supported by ResponseWriter")
++				http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
++				return
++			}
++			// Initial flush to establish SSE connection
++			flusher.Flush()
++
++			_, err := agent.ExecuteAgentLoop(r.Context(), req, runCfg, true, sse)
++			if err != nil {
++				s.Logger.Error("Streamed agent loop failed", "error", err)
++				return
++			}
++
++			// Conclude SSE stream nicely
++			_, _ = io.WriteString(w, "data: [DONE]\n\n")
++			flusher.Flush()
++
+ 		} else {
+-			resp, err := agent.RunSyncAgentLoop(s.Cfg, r.Context(), s.Logger, s.LLMClient, req, s.ShortTermMem, sessionID, s.Vault, s.Registry, manifest, s.CronManager, s.HistoryManager, sse, s.LongTermMem, s.KG, s.InventoryDB, inMaintenance, "", s.CoAgentRegistry, s.BudgetTracker)
++			resp, err := agent.ExecuteAgentLoop(r.Context(), req, runCfg, false, sse)
+ 			if err != nil {
+ 				s.Logger.Error("Sync agent loop failed", "error", err)
+ 				// Return a user-visible error as a proper OpenAI response instead of HTTP 500
+@@ -339,217 +386,6 @@ func handleChatCompletions(s *Server, sse *SSEBroadcaster) http.HandlerFunc {
+ 	}
+ }
+ 
+-func handleStreamedCompletion(s *Server, w http.ResponseWriter, ctx context.Context, req openai.ChatCompletionRequest, sessionID string, sse *SSEBroadcaster) {
+-	w.Header().Set("Content-Type", "text/event-stream")
+-	w.Header().Set("Cache-Control", "no-cache")
+-	w.Header().Set("Connection", "keep-alive")
+-
+-	flusher, ok := w.(http.Flusher)
+-	if !ok {
+-		s.Logger.Error("Streaming not supported by ResponseWriter")
+-		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+-		return
+-	}
+-
+-	manifest := tools.NewManifest(s.Cfg.Directories.ToolsDir)
+-	inMaintenance := tools.IsBusy()
+-	flags := prompts.ContextFlags{
+-		IsErrorState:           false,
+-		RequiresCoding:         false,
+-		SystemLanguage:         s.Cfg.Agent.SystemLanguage,
+-		CorePersonality:        s.Cfg.Agent.CorePersonality,
+-		LifeboatEnabled:        s.Cfg.Maintenance.LifeboatEnabled,
+-		IsMaintenanceMode:      inMaintenance,
+-		TokenBudget:            s.Cfg.Agent.SystemPromptTokenBudget,
+-		MessageCount:           len(req.Messages),
+-		DiscordEnabled:         s.Cfg.Discord.Enabled,
+-		EmailEnabled:           s.Cfg.Email.Enabled,
+-		DockerEnabled:          s.Cfg.Docker.Enabled,
+-		HomeAssistantEnabled:   s.Cfg.HomeAssistant.Enabled,
+-		WebDAVEnabled:          s.Cfg.WebDAV.Enabled,
+-		KoofrEnabled:           s.Cfg.Koofr.Enabled,
+-		ChromecastEnabled:      s.Cfg.Chromecast.Enabled,
+-		CoAgentEnabled:         s.Cfg.CoAgents.Enabled,
+-		GoogleWorkspaceEnabled: s.Cfg.Agent.EnableGoogleWorkspace,
+-	}
+-	toolCallCount := 0
+-	sessionTokens := 0
+-
+-	for {
+-		if toolCallCount >= s.Cfg.CircuitBreaker.MaxToolCalls {
+-			s.Logger.Warn("[Stream] Circuit breaker triggered", "count", toolCallCount)
+-			breakerMsg := fmt.Sprintf("CIRCUIT BREAKER: You have reached the maximum of %d consecutive tool calls. You MUST now summarize your progress and respond to the user with a final answer.", s.Cfg.CircuitBreaker.MaxToolCalls)
+-			req.Messages = append(req.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: breakerMsg})
+-		}
+-
+-		flags.ActiveProcesses = agent.GetActiveProcessStatus(s.Registry)
+-		coreMem := s.ShortTermMem.ReadCoreMemory()
+-
+-		sysPrompt := prompts.BuildSystemPrompt(s.Cfg.Directories.PromptsDir, flags, coreMem, s.Logger)
+-
+-		if len(req.Messages) > 0 && req.Messages[0].Role == openai.ChatMessageRoleSystem {
+-			req.Messages[0].Content = sysPrompt
+-		} else {
+-			req.Messages = append([]openai.ChatCompletionMessage{
+-				{Role: openai.ChatMessageRoleSystem, Content: sysPrompt},
+-			}, req.Messages...)
+-		}
+-
+-		totalChars := 0
+-		for _, m := range req.Messages {
+-			totalChars += len(m.Content)
+-		}
+-		s.Logger.Debug("[Sync] LLM request prepared", "msg_count", len(req.Messages), "total_chars", totalChars)
+-
+-		sse.Send("thinking", "")
+-		stream, err := llm.ExecuteStreamWithRetry(ctx, s.LLMClient, req, s.Logger, sse)
+-		if err != nil {
+-			s.Logger.Error("Failed to create chat completion stream", "error", err)
+-			return
+-		}
+-
+-		var assembledResponse strings.Builder
+-		for {
+-			resp, err := stream.Recv()
+-			if errors.Is(err, io.EOF) {
+-				break
+-			}
+-			if err != nil {
+-				s.Logger.Error("Stream error", "error", err)
+-				stream.Close()
+-				return
+-			}
+-
+-			if len(resp.Choices) > 0 {
+-				if resp.Choices[0].Delta.Content != "" {
+-					delta := resp.Choices[0].Delta.Content
+-					assembledResponse.WriteString(delta)
+-					data, _ := json.Marshal(resp)
+-					_, _ = io.WriteString(w, fmt.Sprintf("data: %s\n\n", data))
+-					flusher.Flush()
+-				}
+-			}
+-		}
+-		stream.Close()
+-
+-		content := assembledResponse.String()
+-		estimatedTokens := len(content) / 4
+-		if estimatedTokens > 0 {
+-			sessionTokens += estimatedTokens
+-			sse.SendJSON(fmt.Sprintf(`{"event":"tokens","prompt":0,"completion":%d,"total":%d,"session_total":%d}`,
+-				estimatedTokens, estimatedTokens, sessionTokens))
+-		}
+-
+-		tc := agent.ParseToolCall(content)
+-
+-		if tc.IsTool && toolCallCount < s.Cfg.CircuitBreaker.MaxToolCalls {
+-			toolCallCount++
+-			id, err := s.ShortTermMem.InsertMessage(sessionID, openai.ChatMessageRoleAssistant, content, false, true)
+-			if err != nil {
+-				s.Logger.Error("Failed to insert tool call message", "error", err)
+-			}
+-			if sessionID == "default" {
+-				s.HistoryManager.Add(openai.ChatMessageRoleAssistant, content, id, false, true)
+-			}
+-
+-			statusMsg := fmt.Sprintf("\n\n> ⚙️ Executing tool: %s...\n\n", tc.Action)
+-			streamChunk := openai.ChatCompletionStreamResponse{
+-				Choices: []openai.ChatCompletionStreamChoice{
+-					{Delta: openai.ChatCompletionStreamChoiceDelta{Content: statusMsg}},
+-				},
+-			}
+-			chunkData, _ := json.Marshal(streamChunk)
+-			io.WriteString(w, fmt.Sprintf("data: %s\n\n", chunkData))
+-			flusher.Flush()
+-
+-			sse.Send("tool_call", content)
+-			sse.Send("tool_start", tc.Action)
+-
+-			if tc.Action == "execute_python" {
+-				flags.RequiresCoding = true
+-				sse.Send("coding", "Executing Python script...")
+-			}
+-
+-			resultContent := agent.DispatchToolCall(ctx, tc, s.Cfg, s.Logger, s.LLMClient, s.Vault, s.Registry, manifest, s.CronManager, s.LongTermMem, s.ShortTermMem, s.KG, s.InventoryDB, s.HistoryManager, inMaintenance, "", s.Guardian, sessionID, s.CoAgentRegistry, s.BudgetTracker)
+-			sse.Send("tool_output", resultContent)
+-			sse.Send("tool_end", tc.Action)
+-
+-			if tc.NotifyOnCompletion {
+-				resultContent = fmt.Sprintf(
+-					"[TOOL COMPLETION NOTIFICATION]\nAction: %s\nStatus: Completed\nTimestamp: %s\nOutput:\n%s",
+-					tc.Action,
+-					time.Now().Format(time.RFC3339),
+-					resultContent,
+-				)
+-			}
+-
+-			// Apply redaction to tool output
+-			resultContent = security.RedactSensitiveInfo(resultContent)
+-
+-			// Guardian: Sanitize tool output (isolation + role-marker stripping)
+-			if s.Guardian != nil {
+-				resultContent = s.Guardian.SanitizeToolOutput(tc.Action, resultContent)
+-			}
+-
+-			if tc.Action == "execute_python" {
+-				if strings.Contains(resultContent, "[EXECUTION ERROR]") || strings.Contains(resultContent, "TIMEOUT") {
+-					flags.IsErrorState = true
+-				} else {
+-					flags.IsErrorState = false
+-				}
+-			}
+-
+-			id, err = s.ShortTermMem.InsertMessage(sessionID, openai.ChatMessageRoleUser, resultContent, false, true)
+-			if err != nil {
+-				s.Logger.Error("Failed to insert tool result message", "error", err)
+-			}
+-			if sessionID == "default" {
+-				s.HistoryManager.Add(openai.ChatMessageRoleUser, resultContent, id, false, true)
+-			}
+-
+-			if strings.Contains(resultContent, "Maintenance Mode activated") {
+-				s.Logger.Info("Handover sentinel detected in stream, Sidecar taking over...")
+-				id, err = s.ShortTermMem.InsertMessage(sessionID, openai.ChatMessageRoleAssistant, content, false, false)
+-				if err != nil {
+-					s.Logger.Error("Failed to insert maintenance message", "error", err)
+-				}
+-				if sessionID == "default" {
+-					s.HistoryManager.Add(openai.ChatMessageRoleAssistant, content, id, false, false)
+-				}
+-				io.WriteString(w, "data: [DONE]\n\n")
+-				flusher.Flush()
+-				return
+-			}
+-
+-			if strings.Contains(resultContent, "[LIFEBOAT_EXIT_SIGNAL]") {
+-				s.Logger.Info("Lifeboat exit signal received in stream, stopping loop.")
+-				io.WriteString(w, "data: [DONE]\n\n")
+-				flusher.Flush()
+-				return
+-			}
+-
+-			req.Messages = append(req.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleAssistant, Content: content})
+-			req.Messages = append(req.Messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: resultContent})
+-			continue
+-		}
+-
+-		if content == "" {
+-			content = "[Empty Response]"
+-		}
+-		id, err := s.ShortTermMem.InsertMessage(sessionID, openai.ChatMessageRoleAssistant, content, false, false)
+-		if err != nil {
+-			s.Logger.Error("Failed to insert final response message", "error", err)
+-		}
+-		if sessionID == "default" {
+-			s.HistoryManager.Add(openai.ChatMessageRoleAssistant, content, id, false, false)
+-		}
+-
+-		_, _ = io.WriteString(w, "data: [DONE]\n\n")
+-		flusher.Flush()
+-		return
+-	}
+-}
+-
+ func handleArchiveMemory(s *Server) http.HandlerFunc {
+ 	return func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodPost {

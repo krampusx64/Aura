@@ -1,0 +1,2 @@
+# command-line-arguments
+cmd\aurago\main.go:391:2: undefined: attachDetachedAttributes

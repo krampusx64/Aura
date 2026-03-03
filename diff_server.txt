@@ -1,0 +1,228 @@
+commit aacdf5da027524547bf49ac2b1ac0769de5232c4
+Author: Andreas Jakob <andreasjakob@gmx.de>
+Date:   Tue Mar 3 13:16:16 2026 +0100
+
+    Refactoring: consolidate Agent Execution Loop and split personality heuristics
+
+diff --git a/internal/server/server.go b/internal/server/server.go
+index 9dbcbc3..ed7245d 100644
+--- a/internal/server/server.go
++++ b/internal/server/server.go
+@@ -66,11 +66,8 @@ type Server struct {
+ 	muFirstStart   sync.Mutex
+ }
+ 
+-// Instance is the global server instance (singleton-ish for Phase 1)
+-var Instance *Server
+-
+ func Start(cfg *config.Config, logger *slog.Logger, llmClient llm.ChatClient, shortTermMem *memory.SQLiteMemory, longTermMem memory.VectorDB, vault *security.Vault, registry *tools.ProcessRegistry, cronManager *tools.CronManager, historyManager *memory.HistoryManager, kg *memory.KnowledgeGraph, inventoryDB *sql.DB, isFirstStart bool, shutdownCh chan struct{}) error {
+-	Instance = &Server{
++	s := &Server{
+ 		Cfg:             cfg,
+ 		Logger:          logger,
+ 		LLMClient:       llmClient,
+@@ -92,7 +89,7 @@ func Start(cfg *config.Config, logger *slog.Logger, llmClient llm.ChatClient, sh
+ 	// Initialize runtime debug mode from config
+ 	agent.SetDebugMode(cfg.Agent.DebugMode)
+ 
+-	return Instance.run(shutdownCh)
++	return s.run(shutdownCh)
+ }
+ 
+ func (s *Server) run(shutdownCh chan struct{}) error {
+@@ -106,21 +103,41 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 	manifest := tools.NewManifest(s.Cfg.Directories.ToolsDir)
+ 	agent.StartMaintenanceLoop(s.Cfg, s.Logger, s.LLMClient, s.Vault, s.Registry, manifest, s.CronManager, s.LongTermMem, s.ShortTermMem, s.HistoryManager, s.KG, s.InventoryDB)
+ 
+-	// Co-Agent cleanup goroutine (removes stale entries every 10 minutes)
++	// requireAuth is a middleware that enforces Bearer token authentication against the MasterKey.
++	// If MasterKey is empty in the config, authentication is bypassed (dev mode).
++	requireAuth := func(s *Server, next http.HandlerFunc) http.HandlerFunc {
++		return func(w http.ResponseWriter, r *http.Request) {
++			key := s.Cfg.Server.MasterKey
++			if key != "" {
++				authHeader := r.Header.Get("Authorization")
++				if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
++					http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
++					return
++				}
++				token := strings.TrimPrefix(authHeader, "Bearer ")
++				if token != key {
++					http.Error(w, "Forbidden: Invalid token", http.StatusForbidden)
++					return
++				}
++			}
++			next.ServeHTTP(w, r)
++		}
++	}
++
+ 	s.CoAgentRegistry.StartCleanupLoop()
+ 
+-	mux.HandleFunc("/v1/chat/completions", handleChatCompletions(s, sse))
+-	mux.HandleFunc("/api/memory/archive", handleArchiveMemory(s))
+-	mux.HandleFunc("/api/upload", handleUpload(s))
+-	mux.HandleFunc("/api/budget", handleBudgetStatus(s))
+-	mux.HandleFunc("/api/personalities", handleListPersonalities(s))
+-	mux.HandleFunc("/api/personality", handleUpdatePersonality(s))
+-	mux.HandleFunc("/api/personality/state", handlePersonalityState(s))
+-	mux.HandleFunc("/events", sse.ServeHTTP)
++	mux.HandleFunc("/v1/chat/completions", requireAuth(s, handleChatCompletions(s, sse)))
++	mux.HandleFunc("/api/memory/archive", requireAuth(s, handleArchiveMemory(s)))
++	mux.HandleFunc("/api/upload", requireAuth(s, handleUpload(s)))
++	mux.HandleFunc("/api/budget", requireAuth(s, handleBudgetStatus(s)))
++	mux.HandleFunc("/api/personalities", requireAuth(s, handleListPersonalities(s)))
++	mux.HandleFunc("/api/personality", requireAuth(s, handleUpdatePersonality(s)))
++	mux.HandleFunc("/api/personality/state", requireAuth(s, handlePersonalityState(s)))
++	mux.HandleFunc("/events", sse.ServeHTTP) // SSE usually authenticates via cookie/query; keeping open for now unless explicitly needed
+ 
+ 	// Config UI endpoints (only when explicitly enabled for security)
+ 	if s.Cfg.WebConfig.Enabled {
+-		mux.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
++		mux.HandleFunc("/api/config", requireAuth(s, func(w http.ResponseWriter, r *http.Request) {
+ 			switch r.Method {
+ 			case http.MethodGet:
+ 				handleGetConfig(s)(w, r)
+@@ -129,9 +146,9 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 			default:
+ 				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+ 			}
+-		})
+-		mux.HandleFunc("/api/config/schema", handleGetConfigSchema(s))
+-		mux.HandleFunc("/api/restart", handleRestart(s))
++		}))
++		mux.HandleFunc("/api/config/schema", requireAuth(s, handleGetConfigSchema(s)))
++		mux.HandleFunc("/api/restart", requireAuth(s, handleRestart(s)))
+ 	}
+ 
+ 	// Phase 35.2: Start the Telegram Long Polling loop
+@@ -144,7 +161,7 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 	tools.StartEmailWatcher(s.Cfg, s.Logger, s.Guardian)
+ 
+ 	// Phase 34: Notifications endpoints
+-	mux.HandleFunc("/notifications", func(w http.ResponseWriter, r *http.Request) {
++	mux.HandleFunc("/notifications", requireAuth(s, func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodGet {
+ 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+ 			return
+@@ -157,9 +174,9 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 		}
+ 		w.Header().Set("Content-Type", "application/json")
+ 		json.NewEncoder(w).Encode(notes)
+-	})
++	}))
+ 
+-	mux.HandleFunc("/notifications/read", func(w http.ResponseWriter, r *http.Request) {
++	mux.HandleFunc("/notifications/read", requireAuth(s, func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodPost {
+ 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+ 			return
+@@ -170,9 +187,9 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 			return
+ 		}
+ 		w.WriteHeader(http.StatusOK)
+-	})
++	}))
+ 
+-	mux.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
++	mux.HandleFunc("/history", requireAuth(s, func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodGet {
+ 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+ 			return
+@@ -188,9 +205,9 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 
+ 		w.Header().Set("Content-Type", "application/json")
+ 		json.NewEncoder(w).Encode(filtered)
+-	})
++	}))
+ 
+-	mux.HandleFunc("/clear", func(w http.ResponseWriter, r *http.Request) {
++	mux.HandleFunc("/clear", requireAuth(s, func(w http.ResponseWriter, r *http.Request) {
+ 		if r.Method != http.MethodDelete {
+ 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+ 			return
+@@ -201,9 +218,9 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 			return
+ 		}
+ 		w.WriteHeader(http.StatusOK)
+-	})
++	}))
+ 
+-	mux.HandleFunc("/api/admin/stop", handleInterrupt(s))
++	mux.HandleFunc("/api/admin/stop", requireAuth(s, handleInterrupt(s)))
+ 
+ 	// Serve the embedded Web UI at root via html/template for i18n injection
+ 	uiFS, err := fs.Sub(ui.Content, ".")
+@@ -295,6 +312,11 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 		}
+ 
+ 		go func() {
++			defer func() {
++				if r := recover(); r != nil {
++					s.Logger.Error("[TTS Server] Goroutine panic recovered", "error", r)
++				}
++			}()
+ 			s.Logger.Info("Starting Dedicated TTS Server", "host", "0.0.0.0", "port", s.Cfg.Chromecast.TTSPort)
+ 			if err := ttsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+ 				s.Logger.Warn("Dedicated TTS Server failed (Chromecast audio will not be available)", "error", err)
+@@ -322,6 +344,11 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 
+ 	// Graceful shutdown goroutine
+ 	go func() {
++		defer func() {
++			if r := recover(); r != nil {
++				s.Logger.Error("[Shutdown] Goroutine panic recovered", "error", r)
++			}
++		}()
+ 		<-shutdownCh
+ 		s.Logger.Info("Initiating graceful HTTP server shutdown...")
+ 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+commit 83888721be800faaeec33eb60e5f258389c737f4
+Author: Andreas Jakob <andreasjakob@gmx.de>
+Date:   Tue Mar 3 00:06:27 2026 +0100
+
+    feat: mood display widget in web UI for personality engine
+    
+    - Add /api/personality/state endpoint returning enabled state, current
+      mood, last trigger text, and all 7 trait values as JSON
+    - Register new route in server.go
+    - Inject PersonalityEnabled template variable into index.html
+    - Add mood widget to header (between personality-select and token counter):
+      - Pill showing mood emoji + mood name, hidden until data loaded
+      - Click-to-expand glassmorphism panel with:
+        - Current mood emoji + label
+        - Last mood trigger text (italic)
+        - 7 color-coded animated trait bars with numeric values
+          (curiosity/cyan, thoroughness/purple, creativity/amber,
+           empathy/pink, confidence/green, affinity/teal, loneliness/indigo)
+      - Auto-refresh every 30 seconds
+      - Click-outside-to-close
+    - Widget only rendered when personality_engine: true
+    - Hidden on mobile (<640px)
+
+diff --git a/internal/server/server.go b/internal/server/server.go
+index 3ba65c9..9dbcbc3 100644
+--- a/internal/server/server.go
++++ b/internal/server/server.go
+@@ -115,6 +115,7 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 	mux.HandleFunc("/api/budget", handleBudgetStatus(s))
+ 	mux.HandleFunc("/api/personalities", handleListPersonalities(s))
+ 	mux.HandleFunc("/api/personality", handleUpdatePersonality(s))
++	mux.HandleFunc("/api/personality/state", handlePersonalityState(s))
+ 	mux.HandleFunc("/events", sse.ServeHTTP)
+ 
+ 	// Config UI endpoints (only when explicitly enabled for security)
+@@ -251,9 +252,10 @@ func (s *Server) run(shutdownCh chan struct{}) error {
+ 		if r.URL.Path == "/" {
+ 			if tmpl != nil {
+ 				data := map[string]interface{}{
+-					"Lang":            normalizeLang(s.Cfg.Agent.SystemLanguage),
+-					"ShowToolResults": s.Cfg.Agent.ShowToolResults,
+-					"DebugMode":       agent.GetDebugMode(),
++					"Lang":               normalizeLang(s.Cfg.Agent.SystemLanguage),
++					"ShowToolResults":    s.Cfg.Agent.ShowToolResults,
++					"DebugMode":          agent.GetDebugMode(),
++					"PersonalityEnabled": s.Cfg.Agent.PersonalityEngine,
+ 				}
+ 				if err := tmpl.Execute(w, data); err != nil {
+ 					s.Logger.Error("Failed to execute UI template", "error", err)
