@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>AuraGo – Konfiguration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'aura': {
+                            'accent': 'var(--accent)',
+                            'bg': 'var(--bg-primary)',
+                            'surface': 'var(--bg-secondary)',
+                            'text': 'var(--text-primary)',
+                            'muted': 'var(--text-secondary)',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        'mono': ['SF Mono', 'Fira Code', 'Cascadia Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/shared.css">
+    <script>
+        const SYSTEM_LANG = "{{.Lang}}";
+        (function () { var t = localStorage.getItem('aurago-theme'); if (t) document.documentElement.setAttribute('data-theme', t); })();
+    </script>
+    <style>
+        /* ── Page-specific: Config Interface ───────────────── */
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Layout */
+        .cfg-layout {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .cfg-sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--border-subtle);
+            overflow-y: auto;
+            padding: 1rem 0;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            font-size: 0.70rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-secondary);
+            padding: 0.8rem 1.25rem 0.4rem 1.25rem;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.55rem 1.25rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: var(--accent-dim);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-left-color: var(--accent);
+            font-weight: 500;
+        }
+
+        .sidebar-item .icon {
+            font-size: 1.05rem;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* Content */
+        .cfg-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem 2.5rem;
+        }
+
+        .cfg-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .cfg-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-header {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .section-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Form fields */
+        .field-group {
+            background: var(--card-bg);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field-group:hover {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .field-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .field-help {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .field-input,
+        .field-select {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 10px;
+            padding: 0.55rem 0.85rem;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field-input:focus,
+        .field-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        .field-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .field-input[type="number"] {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .field-select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            padding-right: 2rem;
+        }
+
+        .field-select option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Toggle switch */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(128, 128, 128, 0.25);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.25s;
+            flex-shrink: 0;
+        }
+
+        .toggle.on {
+            background: var(--accent);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.25s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.on::after {
+            transform: translateX(20px);
+        }
+
+        .toggle-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Password field */
+        .password-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrap .field-input {
+            padding-right: 2.8rem;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 0.6rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.2rem;
+            line-height: 1;
+            z-index: 2;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+        }
+
+        .password-toggle:hover {
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .password-toggle svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Save bar */
+        .save-bar {
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-subtle);
+            padding: 0.7rem 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .save-status {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .save-status.success {
+            color: var(--success);
+        }
+
+        .save-status.error {
+            color: var(--danger);
+        }
+
+        .btn-save {
+            padding: 0.5rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2dd4bf, #0d9488);
+            color: #0b0f1a;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s, opacity 0.25s;
+            box-shadow: 0 2px 12px rgba(45, 212, 191, 0.25);
+        }
+
+        .btn-save:hover:not(:disabled) {
+            transform: scale(1.03);
+            box-shadow: 0 4px 20px rgba(45, 212, 191, 0.35);
+        }
+
+        .btn-save:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .btn-save:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Unsaved changes indicator */
+        .changes-pill {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--border-accent);
+            display: none;
+        }
+
+        .changes-pill.visible {
+            display: inline-block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* ── Sidebar overlay backdrop (mobile) ── */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 19;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .sidebar-backdrop.open {
+            display: block;
+        }
+
+        /* ── Responsive ────────────────────────────── */
+
+        /* Mobile (< 768px): sidebar as slide-out drawer */
+        @media (max-width: 767px) {
+            .cfg-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                z-index: 20;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                padding-top: 1rem;
+            }
+
+            .cfg-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .cfg-content {
+                padding: 1.25rem 1rem;
+            }
+
+            .field-group {
+                padding: 0.75rem 0.9rem;
+            }
+
+            .section-header {
+                font-size: 1.1rem;
+            }
+
+            .save-bar {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .btn-save {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+
+        /* Tablet (768px-1023px): icon-only sidebar */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .cfg-sidebar {
+                width: 60px;
+            }
+
+            .sidebar-item span:not(.icon) {
+                display: none;
+            }
+
+            .sidebar-title {
+                display: none;
+            }
+
+            .sidebar-item {
+                justify-content: center;
+                padding: 0.6rem;
+            }
+
+            .cfg-content {
+                padding: 1.5rem 1.25rem;
+            }
+        }
+
+        /* Desktop (≥ 1024px): full sidebar */
+        @media (min-width: 1024px) {
+            .cfg-sidebar {
+                width: 280px;
+            }
+        }
+
+        /* Hamburger toggle only visible on mobile */
+        .cfg-hamburger {
+            display: none;
+        }
+
+        /* Button text: full on desktop, short on mobile */
+        .cfg-restart-short,
+        .cfg-chat-short {
+            display: none;
+        }
+
+        .cfg-restart-full,
+        .cfg-chat-full {
+            display: inline;
+        }
+
+        @media (max-width: 767px) {
+            .cfg-hamburger {
+                display: grid;
+            }
+
+            /* Hide "CONFIG" text on very small screens */
+            .cfg-logo-text span {
+                display: none;
+            }
+
+            /* Compact buttons: icon-only */
+            .cfg-restart-full,
+            .cfg-chat-full {
+                display: none;
+            }
+
+            .cfg-restart-short,
+            .cfg-chat-short {
+                display: inline;
+            }
+
+            .cfg-restart-btn,
+            .cfg-chat-btn {
+                padding: 0.35rem 0.55rem;
+                font-size: 0.95rem;
+                min-width: 36px;
+                text-align: center;
+            }
+
+            .header-actions {
+                gap: 0.35rem;
+            }
+        }
+
+        @media (max-width: 374px) {
+            /* Very small phones: also hide "AURAGO" text */
+            .cfg-logo-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="cfg-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;">
+            <button id="cfg-hamburger" class="hamburger-btn cfg-hamburger" title="Menu" aria-label="Toggle sidebar">☰</button>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <span class="cfg-logo-text">AURAGO <span style="font-weight:300;opacity:0.5;">CONFIG</span></span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn-header cfg-restart-btn" onclick="restartAuraGo()"
+                style="color:var(--danger);border-color:rgba(239,68,68,0.3);"
+                title="AuraGo Service Neustarten">
+                <span class="cfg-restart-full">↻ Neustart</span>
+                <span class="cfg-restart-short">↻</span>
+            </button>
+            <a href="/" class="btn-header cfg-chat-btn">
+                <span class="cfg-chat-full">← Chat</span>
+                <span class="cfg-chat-short">💬</span>
+            </a>
+            <button class="btn-theme" onclick="toggleTheme()"></button>
+        </div>
+    </div>
+
+    <!-- Layout -->
+    <div class="cfg-layout">
+        <!-- Sidebar backdrop (mobile) -->
+        <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+        <!-- Sidebar -->
+        <div class="cfg-sidebar" id="sidebar"></div>
+
+        <!-- Content -->
+        <div class="cfg-content" id="content">
+            <div style="text-align:center;padding:4rem 1rem;color:var(--text-secondary);">
+                <div style="font-size:2.5rem;margin-bottom:1rem;">⚙️</div>
+                <div style="font-size:1rem;">Lade Konfiguration...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save bar -->
+    <div class="save-bar">
+        <span class="changes-pill" id="changesPill">Ungespeicherte Änderungen</span>
+        <span class="save-status" id="saveStatus"></span>
+        <button class="btn-save" id="btnSave" onclick="saveConfig()" disabled>💾 Speichern</button>
+    </div>
+
+    <script>
+        // SVG icons for password toggle (avoids emoji rendering issues)
+        const EYE_OPEN_SVG = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        const EYE_CLOSED_SVG = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+        // Section metadata grouped by logical categories
+        const SECTIONS = [
+            {
+                group: 'System & Core',
+                items: [
+                    { key: 'server', icon: '🌐', label: { de: 'Server', en: 'Server' }, desc: { de: 'Webserver und API-Einstellungen', en: 'Web server and API settings' } },
+                    { key: 'directories', icon: '📁', label: { de: 'Verzeichnisse', en: 'Directories' }, desc: { de: 'Dateipfade für Daten und Prompts', en: 'File paths for data and prompts' } },
+                    { key: 'sqlite', icon: '🗄️', label: { de: 'Datenbanken', en: 'Databases' }, desc: { de: 'SQLite-Datenbankpfade', en: 'SQLite database paths' } },
+                    { key: 'logging', icon: '📋', label: { de: 'Logging', en: 'Logging' }, desc: { de: 'Log-Einstellungen', en: 'Log settings' } },
+                    { key: 'maintenance', icon: '🔧', label: { de: 'Wartung', en: 'Maintenance' }, desc: { de: 'Wartungsmodus und Lifeboat', en: 'Maintenance mode and lifeboat' } },
+                    { key: 'web_config', icon: '🛡️', label: { de: 'Web-Konfiguration', en: 'Web Config' }, desc: { de: 'Sicherheitseinstellungen für diese Seite', en: 'Security settings for this page' } }
+                ]
+            },
+            {
+                group: 'Agent & LLM',
+                items: [
+                    { key: 'agent', icon: '⚙️', label: { de: 'Agent', en: 'Agent' }, desc: { de: 'Agent-Verhalten und Optimierung', en: 'Agent behavior and optimization' } },
+                    { key: 'llm', icon: '🧠', label: { de: 'LLM Provider', en: 'LLM Provider' }, desc: { de: 'Sprachmodell-Konfiguration', en: 'Language model configuration' } },
+                    { key: 'fallback_llm', icon: '🔄', label: { de: 'Fallback LLM', en: 'Fallback LLM' }, desc: { de: 'Automatischer LLM-Wechsel bei Fehlern', en: 'Automatic LLM failover on errors' } },
+                    { key: 'embeddings', icon: '🔗', label: { de: 'Embeddings', en: 'Embeddings' }, desc: { de: 'Vektor-Embedding-Konfiguration', en: 'Vector embedding configuration' } },
+                    { key: 'circuit_breaker', icon: '🔌', label: { de: 'Circuit Breaker', en: 'Circuit Breaker' }, desc: { de: 'Sicherheitslimits und Timeouts', en: 'Safety limits and timeouts' } },
+                    { key: 'budget', icon: '💰', label: { de: 'Budget', en: 'Budget' }, desc: { de: 'Kostentracking und Limits', en: 'Cost tracking and limits' } },
+                    { key: 'co_agents', icon: '🤖', label: { de: 'Co-Agents', en: 'Co-Agents' }, desc: { de: 'Parallele Sub-Agents', en: 'Parallel sub-agents' } }
+                ]
+            },
+            {
+                group: 'Tools & Dienste',
+                items: [
+                    { key: 'email', icon: '✉️', label: { de: 'E-Mail', en: 'Email' }, desc: { de: 'IMAP/SMTP E-Mail-Konfiguration', en: 'IMAP/SMTP email configuration' } },
+                    { key: 'docker', icon: '🐳', label: { de: 'Docker', en: 'Docker' }, desc: { de: 'Container-Management', en: 'Container management' } },
+                    { key: 'webdav', icon: '☁️', label: { de: 'WebDAV', en: 'WebDAV' }, desc: { de: 'WebDAV Cloud-Sync', en: 'WebDAV cloud sync' } },
+                    { key: 'koofr', icon: '📦', label: { de: 'Koofr', en: 'Koofr' }, desc: { de: 'Koofr Cloud-Storage', en: 'Koofr cloud storage' } },
+                    { key: 'virustotal', icon: '🦠', label: { de: 'VirusTotal', en: 'VirusTotal' }, desc: { de: 'VirusTotal API für Scans', en: 'VirusTotal API for scans' } },
+                    { key: 'vision', icon: '👁️', label: { de: 'Vision', en: 'Vision' }, desc: { de: 'Bildanalyse-Konfiguration', en: 'Image analysis configuration' } },
+                    { key: 'whisper', icon: '🎤', label: { de: 'Sprache', en: 'Speech' }, desc: { de: 'Whisper Speech-to-Text', en: 'Whisper speech-to-text' } },
+                    { key: 'tts', icon: '🔊', label: { de: 'Text-to-Speech', en: 'Text-to-Speech' }, desc: { de: 'Sprachausgabe-Einstellungen', en: 'Speech output settings' } }
+                ]
+            },
+            {
+                group: 'Integrationen',
+                items: [
+                    { key: 'telegram', icon: '📱', label: { de: 'Telegram', en: 'Telegram' }, desc: { de: 'Telegram Bot-Integration', en: 'Telegram bot integration' } },
+                    { key: 'discord', icon: '💬', label: { de: 'Discord', en: 'Discord' }, desc: { de: 'Discord Bot-Integration', en: 'Discord bot integration' } },
+                    { key: 'home_assistant', icon: '🏠', label: { de: 'Home Assistant', en: 'Home Assistant' }, desc: { de: 'Smart-Home-Integration', en: 'Smart home integration' } },
+                    { key: 'chromecast', icon: '📺', label: { de: 'Chromecast', en: 'Chromecast' }, desc: { de: 'Chromecast-Audio-Integration', en: 'Chromecast audio integration' } },
+                    { key: 'notifications', icon: '🔔', label: { de: 'Benachrichtigungen', en: 'Notifications' }, desc: { de: 'Push-Notification Kanäle', en: 'Push notification channels' } }
+                ]
+            }
+        ];
+
+        const lang = SYSTEM_LANG === 'de' ? 'de' : 'en';
+        let configData = {};
+        let helpTexts = {};
+        let schema = [];
+        let activeSection = 'server';
+        let isDirty = false;
+        let initialSnapshot = '';
+        const SENSITIVE_KEYS = ['api_key', 'bot_token', 'password', 'app_password', 'access_token', 'token', 'user_key', 'app_token'];
+
+        // Init
+        async function init() {
+            try {
+                const [cfgResp, helpResp, schemaResp] = await Promise.all([
+                    fetch('/api/config'),
+                    fetch('/config_help.json'),
+                    fetch('/api/config/schema')
+                ]);
+                configData = await cfgResp.json();
+                helpTexts = await helpResp.json();
+                schema = await schemaResp.json();
+            } catch (e) {
+                document.getElementById('content').innerHTML = '<div style="text-align:center;padding:4rem;color:var(--danger);">❌ Fehler beim Laden der Konfiguration.<br><small>' + e.message + '</small></div>';
+                return;
+            }
+            buildSidebar();
+            selectSection('server');
+            // Take initial snapshot for dirty tracking after first render
+            setTimeout(() => { initialSnapshot = collectSnapshot(); setDirty(false); }, 100);
+        }
+
+        /* ── Sidebar drawer (mobile) ── */
+        const cfgHamburger = document.getElementById('cfg-hamburger');
+        const sidebarEl = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        function openSidebar() {
+            sidebarEl.classList.add('open');
+            sidebarBackdrop.classList.add('open');
+            cfgHamburger.textContent = '✕';
+        }
+
+        function closeSidebar() {
+            sidebarEl.classList.remove('open');
+            sidebarBackdrop.classList.remove('open');
+            cfgHamburger.textContent = '☰';
+        }
+
+        cfgHamburger.addEventListener('click', () => {
+            if (sidebarEl.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+
+        sidebarBackdrop.addEventListener('click', closeSidebar);
+
+        function buildSidebar() {
+            const sb = document.getElementById('sidebar');
+            sb.innerHTML = '';
+
+            SECTIONS.forEach(group => {
+                const title = document.createElement('div');
+                title.className = 'sidebar-title';
+                title.textContent = group.group;
+                sb.appendChild(title);
+
+                group.items.forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = 'sidebar-item' + (s.key === activeSection ? ' active' : '');
+                    item.dataset.section = s.key;
+                    item.innerHTML = '<span class="icon">' + s.icon + '</span><span>' + s.label[lang] + '</span>';
+                    item.onclick = () => selectSection(s.key);
+                    sb.appendChild(item);
+                });
+            });
+        }
+
+        function selectSection(key) {
+            activeSection = key;
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.toggle('active', el.dataset.section === key));
+            renderSection(key);
+            // Re-attach change listeners after rendering
+            attachChangeListeners();
+            // Auto-close sidebar on mobile
+            closeSidebar();
+        }
+
+        function renderSection(key) {
+            let section = null;
+            for (const group of SECTIONS) {
+                const found = group.items.find(s => s.key === key);
+                if (found) {
+                    section = found;
+                    break;
+                }
+            }
+            if (!section) return;
+            const data = configData[key] || {};
+            const sectionSchema = schema.find(s => s.yaml_key === key);
+
+            let html = '<div class="cfg-section active">';
+            html += '<div class="section-header">' + section.icon + ' ' + section.label[lang] + '</div>';
+            html += '<div class="section-desc">' + section.desc[lang] + '</div>';
+
+            if (sectionSchema && sectionSchema.children) {
+                html += renderFields(sectionSchema.children, data, key);
+            } else {
+                for (const [k, v] of Object.entries(data)) {
+                    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+                        html += '<div style="margin-top:1rem;margin-bottom:0.5rem;font-weight:600;font-size:0.85rem;color:var(--accent);">' + formatKey(k) + '</div>';
+                        for (const [sk, sv] of Object.entries(v)) {
+                            html += renderField(key + '.' + k + '.' + sk, sk, sv, key + '.' + k);
+                        }
+                    } else {
+                        html += renderField(key + '.' + k, k, v, key);
+                    }
+                }
+            }
+
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderFields(fields, data, parentPath) {
+            let html = '';
+            for (const field of fields) {
+                const val = data[field.yaml_key];
+                const fullPath = parentPath + '.' + field.yaml_key;
+
+                if (field.type === 'object' && field.children) {
+                    html += '<div style="margin-top:1.2rem;margin-bottom:0.5rem;font-weight:600;font-size:0.85rem;color:var(--accent);border-bottom:1px solid var(--border-subtle);padding-bottom:0.3rem;">' + formatKey(field.yaml_key) + '</div>';
+                    html += renderFields(field.children, val || {}, fullPath);
+                } else {
+                    html += renderField(fullPath, field.yaml_key, val, parentPath, field);
+                }
+            }
+            return html;
+        }
+
+        function renderField(fullPath, key, value, parentPath, fieldSchema) {
+            const helpKey = fullPath;
+            const help = helpTexts[helpKey];
+            const helpText = help ? (help[lang] || help['en'] || '') : '';
+            const helpOptions = help ? help.options : null;
+            const isSensitive = fieldSchema?.sensitive || SENSITIVE_KEYS.includes(key);
+            const fieldType = fieldSchema?.type || guessType(value);
+
+            let html = '<div class="field-group">';
+            html += '<div class="field-label">' + formatKey(key);
+            if (isSensitive) html += ' <span style="font-size:0.65rem;color:var(--warning);">🔒</span>';
+            html += '</div>';
+            if (helpText) html += '<div class="field-help">' + helpText + '</div>';
+
+            if (fieldType === 'bool') {
+                const isOn = value === true;
+                html += '<div class="toggle-wrap">';
+                html += '<div class="toggle' + (isOn ? ' on' : '') + '" data-path="' + fullPath + '" onclick="toggleBool(this)"></div>';
+                html += '<span class="toggle-label">' + (isOn ? 'Aktiv' : 'Inaktiv') + '</span>';
+                html += '</div>';
+            } else if (helpOptions && Array.isArray(helpOptions)) {
+                // Dropdown for fields with predefined options
+                html += '<select class="field-select" data-path="' + fullPath + '">';
+                helpOptions.forEach(opt => {
+                    const selected = (String(value) === String(opt)) ? ' selected' : '';
+                    html += '<option value="' + escapeAttr(opt) + '"' + selected + '>' + escapeAttr(opt) + '</option>';
+                });
+                html += '</select>';
+            } else if (isSensitive) {
+                const displayVal = (value === '••••••••' || !value) ? '' : value;
+                html += '<div class="password-wrap">';
+                html += '<input class="field-input" type="password" data-path="' + fullPath + '" value="' + escapeAttr(displayVal) + '" placeholder="••••••••" autocomplete="off">';
+                html += '<button type="button" class="password-toggle" data-visible="false" onclick="togglePassword(this)">' + EYE_OPEN_SVG + '</button>';
+                html += '</div>';
+            } else if (fieldType === 'int' || fieldType === 'float') {
+                const step = fieldType === 'float' ? '0.01' : '1';
+                // Special handling for agent.core_memory_max_entries: show default 200 if missing/0
+                let showValue = value;
+                if (fullPath.endsWith('agent.core_memory_max_entries')) {
+                    showValue = (value === undefined || value === null || value === 0 || value === '') ? 200 : value;
+                }
+                html += '<input class="field-input" type="number" step="' + step + '" data-path="' + fullPath + '" value="' + (showValue ?? '') + '">';
+            } else if (fieldType === 'array') {
+                const arrVal = Array.isArray(value) ? value.join(', ') : (value || '');
+                html += '<input class="field-input" type="text" data-path="' + fullPath + '" data-type="array" value="' + escapeAttr(arrVal) + '" placeholder="Kommagetrennte Werte">';
+            } else {
+                html += '<input class="field-input" type="text" data-path="' + fullPath + '" value="' + escapeAttr(value ?? '') + '">';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function guessType(val) {
+            if (typeof val === 'boolean') return 'bool';
+            if (typeof val === 'number') return Number.isInteger(val) ? 'int' : 'float';
+            if (Array.isArray(val)) return 'array';
+            return 'string';
+        }
+
+        function formatKey(key) {
+            return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        }
+
+        function escapeAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+        function toggleBool(el) {
+            const on = el.classList.toggle('on');
+            el.nextElementSibling.textContent = on ? 'Aktiv' : 'Inaktiv';
+            markDirty();
+        }
+
+        function togglePassword(btn) {
+            const input = btn.closest('.password-wrap').querySelector('.field-input');
+            const isVisible = btn.dataset.visible === 'true';
+            if (isVisible) {
+                input.type = 'password';
+                btn.innerHTML = EYE_OPEN_SVG;
+                btn.dataset.visible = 'false';
+            } else {
+                input.type = 'text';
+                btn.innerHTML = EYE_CLOSED_SVG;
+                btn.dataset.visible = 'true';
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('aurago-theme', next);
+        }
+
+        // ── Dirty tracking ──────────────────────────────────
+        function collectSnapshot() {
+            const parts = [];
+            document.querySelectorAll('[data-path]').forEach(el => {
+                const path = el.dataset.path;
+                let val;
+                if (el.classList.contains('toggle')) {
+                    val = el.classList.contains('on') ? 'true' : 'false';
+                } else {
+                    val = el.value;
+                }
+                parts.push(path + '=' + val);
+            });
+            return parts.join('|');
+        }
+
+        function markDirty() {
+            if (!isDirty) {
+                isDirty = true;
+                setDirty(true);
+            }
+        }
+
+        function setDirty(dirty) {
+            isDirty = dirty;
+            const btn = document.getElementById('btnSave');
+            const pill = document.getElementById('changesPill');
+            btn.disabled = !dirty;
+            pill.classList.toggle('visible', dirty);
+        }
+
+        function attachChangeListeners() {
+            document.querySelectorAll('.field-input, .field-select').forEach(el => {
+                el.addEventListener('input', markDirty);
+                el.addEventListener('change', markDirty);
+            });
+        }
+
+        // ── Save ────────────────────────────────────────────
+        async function saveConfig() {
+            const btn = document.getElementById('btnSave');
+            const status = document.getElementById('saveStatus');
+            btn.disabled = true;
+            status.className = 'save-status';
+            status.textContent = 'Speichere...';
+
+            // Collect all field values
+            const patch = {};
+            document.querySelectorAll('[data-path]').forEach(el => {
+                const path = el.dataset.path;
+                const parts = path.split('.');
+                let val;
+
+                if (el.classList.contains('toggle')) {
+                    val = el.classList.contains('on');
+                } else if (el.type === 'number') {
+                    val = el.value === '' ? 0 : (el.step === '0.01' ? parseFloat(el.value) : parseInt(el.value));
+                } else if (el.dataset.type === 'array') {
+                    val = el.value.split(',').map(s => s.trim()).filter(Boolean);
+                } else {
+                    val = el.value;
+                }
+
+                // Build nested object from dotted path
+                let obj = patch;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    if (!obj[parts[i]]) obj[parts[i]] = {};
+                    obj = obj[parts[i]];
+                }
+                obj[parts[parts.length - 1]] = val;
+            });
+
+            try {
+                const resp = await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(patch)
+                });
+                const result = await resp.json();
+                if (resp.ok) {
+                    if (result.needs_restart) {
+                        status.className = 'save-status';
+                        status.style.color = 'var(--warning)';
+                        status.textContent = '⚠ ' + (result.message || 'Neustart nötig');
+                    } else {
+                        status.className = 'save-status success';
+                        status.textContent = '✓ ' + (result.message || 'Gespeichert & angewendet');
+                    }
+                    // Refresh config data and reset dirty state
+                    const cfgResp = await fetch('/api/config');
+                    configData = await cfgResp.json();
+                    initialSnapshot = collectSnapshot();
+                    setDirty(false);
+                } else {
+                    status.className = 'save-status error';
+                    status.textContent = '✗ ' + (result.message || 'Fehler');
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                status.className = 'save-status error';
+                status.textContent = '✗ ' + e.message;
+                btn.disabled = false;
+            }
+            setTimeout(() => { status.textContent = ''; }, 5000);
+        }
+
+        async function restartAuraGo() {
+            if (!confirm('AuraGo Service wirklich neu starten? (Dauert ca. 3-5 Sekunden)')) return;
+
+            try {
+                const resp = await fetch('/api/restart', { method: 'POST' });
+                if (resp.ok) {
+                    const res = await resp.json();
+                    document.body.innerHTML = `
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--bg-primary);color:var(--text-primary);">
+                            <div style="font-size:4rem;margin-bottom:1.5rem;animation:spin 2s linear infinite;">↻</div>
+                            <h2 style="font-size:1.5rem;font-weight:600;">${res.message}</h2>
+                            <p style="color:var(--text-secondary);margin-top:0.75rem;">Die Seite lädt gleich automatisch neu...</p>
+                            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+                        </div>
+                    `;
+                    // Attempt to reload after 4 seconds to give the service time to restart
+                    setTimeout(() => window.location.reload(), 4000);
+                } else {
+                    alert('Fehler: Neustart konnte nicht angefordert werden.');
+                }
+            } catch (e) {
+                // If the fetch fails immediately, it might be that the server died instantly.
+                // We'll still show the reloading screen.
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--text-secondary);">Verbindung getrennt. Warte auf Neustart...</div>';
+                setTimeout(() => window.location.reload(), 4000);
+            }
+        }
+
+        // Boot
+        init();
+    </script>
+</body>
+
+</html>

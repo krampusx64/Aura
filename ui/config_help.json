@@ -1,0 +1,482 @@
+{
+    "server.host": {
+        "de": "IP-Adresse, auf der der Server lauscht. '127.0.0.1' = nur lokal, '0.0.0.0' = alle Interfaces.",
+        "en": "IP address the server listens on. '127.0.0.1' = local only, '0.0.0.0' = all interfaces.",
+        "options": [
+            "127.0.0.1",
+            "0.0.0.0"
+        ]
+    },
+    "server.port": {
+        "de": "Port für den Webserver und die REST-API.",
+        "en": "Port for the web server and REST API."
+    },
+    "server.bridge_address": {
+        "de": "TCP-Adresse für die Lifeboat-Bridge-Verbindung (Host:Port). Standard: 'localhost:8089'.",
+        "en": "TCP address for the Lifeboat bridge connection (host:port). Default: 'localhost:8089'."
+    },
+    "server.max_body_bytes": {
+        "de": "Maximale Größe des HTTP-Request-Body in Bytes (Config-Endpunkt). Standard: 10485760 (10 MB).",
+        "en": "Maximum HTTP request body size in bytes (config endpoint). Default: 10485760 (10 MB)."
+    },
+    "llm.provider": {
+        "de": "LLM-Provider: 'openai', 'openrouter', 'ollama', oder ein benutzerdefinierter OpenAI-kompatibler Endpunkt.",
+        "en": "LLM provider: 'openai', 'openrouter', 'ollama', or a custom OpenAI-compatible endpoint.",
+        "options": [
+            "openai",
+            "openrouter",
+            "ollama"
+        ]
+    },
+    "llm.base_url": {
+        "de": "Basis-URL des LLM-Providers. Für OpenRouter: 'https://openrouter.ai/api/v1'.",
+        "en": "Base URL of the LLM provider. For OpenRouter: 'https://openrouter.ai/api/v1'."
+    },
+    "llm.api_key": {
+        "de": "API-Schlüssel für den LLM-Provider.",
+        "en": "API key for the LLM provider."
+    },
+    "llm.model": {
+        "de": "Modellname, z.B. 'google/gemini-2.0-flash-001' oder 'gpt-4o'.",
+        "en": "Model name, e.g. 'google/gemini-2.0-flash-001' or 'gpt-4o'."
+    },
+    "agent.system_language": {
+        "de": "Sprache für Antworten, z.B. 'Deutsch' oder 'English'.",
+        "en": "Language for responses, e.g. 'Deutsch' or 'English'.",
+        "options": [
+            "Deutsch",
+            "English",
+            "Français",
+            "Español",
+            "中文",
+            "日本語"
+        ]
+    },
+    "agent.step_delay_seconds": {
+        "de": "Wartezeit zwischen Tool-Aufrufen in Sekunden. 0 = kein Delay.",
+        "en": "Delay between tool calls in seconds. 0 = no delay."
+    },
+    "agent.personality_engine": {
+        "de": "Aktiviert das Persönlichkeitssystem mit Stimmung und Micro-Traits.",
+        "en": "Enables the personality engine with mood and micro-traits."
+    },
+    "agent.personality_engine_v2": {
+        "de": "Aktiviert die fortgeschrittene V2 Engine mit asynchroner LLM-Stimmungsbewertung.",
+        "en": "Enables the advanced V2 engine with asynchronous LLM mood analysis."
+    },
+    "agent.personality_v2_model": {
+        "de": "Modellname für die Personality Engine V2, z.B. 'gpt-4o-mini' oder 'llama3.1'.",
+        "en": "Model name for the Personality Engine V2, e.g. 'gpt-4o-mini' or 'llama3.1'."
+    },
+    "agent.personality_v2_url": {
+        "de": "Optionale eigene Base-URL für V2, z.B. für ein lokales Ollama ('http://localhost:11434/v1').",
+        "en": "Optional custom base URL for V2, e.g. for a local Ollama ('http://localhost:11434/v1')."
+    },
+    "agent.personality_v2_api_key": {
+        "de": "Optionaler eigener API-Key für die V2 Engine. Bei Ollama oft einfach 'ollama'.",
+        "en": "Optional custom API key for the V2 engine. Usually 'ollama' for Ollama."
+    },
+    "agent.core_personality": {
+        "de": "Aktives Persönlichkeitsprofil, z.B. 'neutral', 'punk', 'zen'.",
+        "en": "Active personality profile, e.g. 'neutral', 'punk', 'zen'.",
+        "options": [
+            "neutral",
+            "punk",
+            "zen",
+            "professional",
+            "cheerful"
+        ]
+    },
+    "agent.system_prompt_token_budget": {
+        "de": "Maximale Token-Anzahl für den System-Prompt. 0 = unbegrenzt.",
+        "en": "Maximum token count for the system prompt. 0 = unlimited."
+    },
+    "agent.context_window": {
+        "de": "Kontextfenster-Größe in Tokens. 0 = automatisch.",
+        "en": "Context window size in tokens. 0 = auto-detect."
+    },
+    "agent.memory_compression_char_limit": {
+        "de": "Zeichenlimit ab dem alte Nachrichten komprimiert werden.",
+        "en": "Character limit after which old messages are compressed."
+    },
+    "llm.use_native_functions": {
+        "de": "Nutzt native Function-Calling des LLM statt JSON-basiertem Tool-Dispatch.",
+        "en": "Uses native function calling of the LLM instead of JSON-based tool dispatch."
+    },
+    "agent.show_tool_results": {
+        "de": "Zeigt Tool-Ergebnisse im Chat-Fenster als klappbare Debug-Blöcke.",
+        "en": "Shows tool results in the chat window as collapsible debug blocks."
+    },
+    "agent.debug_mode": {
+        "de": "Aktiviert den Debug-Modus mit erweiterten Fehlermeldungen.",
+        "en": "Enables debug mode with extended error messages."
+    },
+    "agent.workflow_feedback": {
+        "de": "Aktiviert gelegentliche Status-Updates bei langen Arbeitsabläufen (z.B. 'Bin gleich fertig...').",
+        "en": "Enables occasional status updates during long workflows (e.g. 'One moment please...')."
+    },
+    "agent.enable_google_workspace": {
+        "de": "Aktiviert Google Workspace Integration (Docs, Calendar).",
+        "en": "Enables Google Workspace integration (Docs, Calendar)."
+    },
+    "circuit_breaker.max_tool_calls": {
+        "de": "Maximale Anzahl erlaubter Tool-Aufrufe pro Anfrage.",
+        "en": "Maximum number of tool calls allowed per request."
+    },
+    "circuit_breaker.llm_timeout_seconds": {
+        "de": "Timeout für LLM-Anfragen in Sekunden.",
+        "en": "Timeout for LLM requests in seconds."
+    },
+    "circuit_breaker.maintenance_timeout_minutes": {
+        "de": "Zeit in Minuten ohne User-Aktivität, bevor der Agent automatisch aus dem Maintenance-Modus zurückkehrt.",
+        "en": "Time in minutes without user activity before the agent automatically returns from maintenance mode."
+    },
+    "circuit_breaker.retry_intervals": {
+        "de": "Wartezeiten zwischen Retry-Versuchen, z.B. '30s', '2m', '10m'.",
+        "en": "Wait times between retry attempts, e.g. '30s', '2m', '10m'."
+    },
+    "telegram.telegram_user_id": {
+        "de": "Deine Telegram User-ID für Berechtigungsprüfung.",
+        "en": "Your Telegram user ID for authorization."
+    },
+    "telegram.bot_token": {
+        "de": "Telegram Bot-Token von @BotFather.",
+        "en": "Telegram bot token from @BotFather."
+    },
+    "telegram.max_concurrent_workers": {
+        "de": "Maximale Anzahl gleichzeitig verarbeiteter Telegram-Nachrichten. Standard: 5.",
+        "en": "Maximum number of concurrently processed Telegram messages. Default: 5."
+    },
+    "discord.enabled": {
+        "de": "Aktiviert den Discord-Bot.",
+        "en": "Enables the Discord bot."
+    },
+    "discord.bot_token": {
+        "de": "Discord Bot-Token aus dem Developer Portal.",
+        "en": "Discord bot token from the Developer Portal."
+    },
+    "discord.guild_id": {
+        "de": "ID des Discord-Servers (Guild).",
+        "en": "ID of the Discord server (Guild)."
+    },
+    "email.enabled": {
+        "de": "Aktiviert E-Mail-Senden und -Empfangen.",
+        "en": "Enables email sending and receiving."
+    },
+    "email.watch_enabled": {
+        "de": "Überwacht den E-Mail-Posteingang auf neue Nachrichten.",
+        "en": "Watches the email inbox for new messages."
+    },
+    "fallback_llm.enabled": {
+        "de": "Aktiviert die automatische Umschaltung auf einen Backup-LLM bei Fehlern.",
+        "en": "Enables automatic failover to a backup LLM on errors."
+    },
+    "maintenance.enabled": {
+        "de": "Aktiviert den täglichen Wartungsmodus für Selbst-Updates.",
+        "en": "Enables the daily maintenance mode for self-updates."
+    },
+    "maintenance.time": {
+        "de": "Uhrzeit für den täglichen Wartungslauf (HH:MM Format).",
+        "en": "Time for the daily maintenance run (HH:MM format)."
+    },
+    "budget.enabled": {
+        "de": "Aktiviert das Kostenbudget-Tracking.",
+        "en": "Enables cost budget tracking."
+    },
+    "budget.daily_limit_usd": {
+        "de": "Tägliches Ausgabenlimit in USD.",
+        "en": "Daily spending limit in USD."
+    },
+    "budget.enforcement": {
+        "de": "Reaktion bei Budget-Überschreitung: 'warn' = nur Warnung, 'partial' = begrenzte Tools, 'full' = Stopp.",
+        "en": "Action on budget exceed: 'warn' = warning only, 'partial' = limited tools, 'full' = stop.",
+        "options": [
+            "warn",
+            "partial",
+            "full"
+        ]
+    },
+    "docker.enabled": {
+        "de": "Aktiviert Docker-Container-Management.",
+        "en": "Enables Docker container management."
+    },
+    "co_agents.enabled": {
+        "de": "Aktiviert parallele Co-Agents für Sub-Tasks.",
+        "en": "Enables parallel co-agents for sub-tasks."
+    },
+    "notifications.ntfy.enabled": {
+        "de": "Aktiviert Push-Benachrichtigungen via ntfy.sh.",
+        "en": "Enables push notifications via ntfy.sh."
+    },
+    "notifications.ntfy.url": {
+        "de": "ntfy-Server URL. Standard: 'https://ntfy.sh'. Kann self-hosted sein.",
+        "en": "ntfy server URL. Default: 'https://ntfy.sh'. Can be self-hosted."
+    },
+    "notifications.ntfy.topic": {
+        "de": "ntfy Topic-Name für diese AuraGo-Instanz.",
+        "en": "ntfy topic name for this AuraGo instance."
+    },
+    "web_config.enabled": {
+        "de": "Aktiviert die Web-Konfigurationsseite unter /config. Aus Sicherheitsgründen standardmäßig deaktiviert.",
+        "en": "Enables the web configuration page at /config. Disabled by default for security."
+    },
+    "home_assistant.enabled": {
+        "de": "Aktiviert die Home Assistant Smart-Home-Integration.",
+        "en": "Enables Home Assistant smart home integration."
+    },
+    "home_assistant.url": {
+        "de": "URL der Home Assistant Instanz, z.B. 'http://192.168.1.100:8123'.",
+        "en": "URL of the Home Assistant instance, e.g. 'http://192.168.1.100:8123'."
+    },
+    "chromecast.enabled": {
+        "de": "Aktiviert die Chromecast-Integration für Audio-Ausgabe.",
+        "en": "Enables Chromecast integration for audio output."
+    },
+    "tts.provider": {
+        "de": "Text-to-Speech Provider: 'google' oder 'elevenlabs'.",
+        "en": "Text-to-speech provider: 'google' or 'elevenlabs'.",
+        "options": [
+            "google",
+            "elevenlabs"
+        ]
+    },
+    "tts.language": {
+        "de": "BCP-47 Sprachcode für Google TTS, z.B. 'de' oder 'en'.",
+        "en": "BCP-47 language code for Google TTS, e.g. 'de' or 'en'.",
+        "options": [
+            "de",
+            "en",
+            "fr",
+            "es",
+            "it",
+            "ja",
+            "zh"
+        ]
+    },
+    "embeddings.provider": {
+        "de": "Embedding-Provider: 'internal' (lokal) oder 'external' (API-basiert).",
+        "en": "Embedding provider: 'internal' (local) or 'external' (API-based).",
+        "options": [
+            "internal",
+            "external"
+        ]
+    },
+    "whisper.provider": {
+        "de": "Whisper Speech-to-Text Provider.",
+        "en": "Whisper speech-to-text provider.",
+        "options": [
+            "openai",
+            "local"
+        ]
+    },
+    "vision.provider": {
+        "de": "Vision/Bildanalyse Provider.",
+        "en": "Vision/image analysis provider.",
+        "options": [
+            "openai",
+            "openrouter",
+            "ollama"
+        ]
+    },
+    "logging.enable_file_log": {
+        "de": "Schreibt Logs zusätzlich in eine Datei.",
+        "en": "Writes logs additionally to a file."
+    },
+    "logging.log_dir": {
+        "de": "Verzeichnis für Log-Dateien.",
+        "en": "Directory for log files."
+    },
+    "discord.allowed_user_id": {
+        "de": "Die einzige User-ID, auf die der Discord-Bot hört.",
+        "en": "The only User ID the Discord bot will listen to."
+    },
+    "discord.default_channel_id": {
+        "de": "Die ID des Standard-Kanals für Startmeldungen.",
+        "en": "The ID of the default channel for startup messages."
+    },
+    "docker.host": {
+        "de": "Optionaler Remote-Docker-Host (z.B. tcp://192.168.1.5:2375). Leer lassen für lokalen Socket.",
+        "en": "Optional remote Docker host (e.g. tcp://192.168.1.5:2375). Leave blank for local socket."
+    },
+    "email.from_address": {
+        "de": "Absender E-Mail Adresse, die versendet wird.",
+        "en": "Sender email address to be transmitted."
+    },
+    "email.imap_host": {
+        "de": "IMAP Server Adresse für den E-Mail Empfang.",
+        "en": "IMAP server address for email reception."
+    },
+    "email.imap_port": {
+        "de": "IMAP Server Port (meist 993 für SSL).",
+        "en": "IMAP server port (usually 993 for SSL)."
+    },
+    "email.smtp_host": {
+        "de": "SMTP Server Adresse für den E-Mail Versand.",
+        "en": "SMTP server address for email sending."
+    },
+    "email.smtp_port": {
+        "de": "SMTP Server Port (meist 587 oder 465).",
+        "en": "SMTP server port (usually 587 or 465)."
+    },
+    "email.username": {
+        "de": "Username für den E-Mail Login.",
+        "en": "Username for email login."
+    },
+    "email.password": {
+        "de": "Passwort für den E-Mail Login.",
+        "en": "Password for email login."
+    },
+    "email.watch_folder": {
+        "de": "Der Mailbox-Ordner, der auf neue Mails geprüft wird (üblicherweise INBOX).",
+        "en": "The mailbox folder to check for new mails (usually INBOX)."
+    },
+    "email.watch_interval_seconds": {
+        "de": "Intervall in Sekunden für den Mailbox-Check.",
+        "en": "Interval in seconds to check the mailbox."
+    },
+    "budget.reset_hour": {
+        "de": "Uhrzeit (0-23) wann das tägliche Budget zurückgesetzt wird.",
+        "en": "Hour of the day (0-23) when the daily budget resets."
+    },
+    "budget.warning_threshold": {
+        "de": "Prozentsatz (0.0 bis 1.0) bei dem eine Warnung ausgelöst wird.",
+        "en": "Percentage (0.0 to 1.0) at which a warning is triggered."
+    },
+    "budget.default_cost.input_per_million": {
+        "de": "Standardkosten für 1 Million Input-Tokens, falls Modell nicht gelistet.",
+        "en": "Default cost for 1 million input tokens if model is not listed."
+    },
+    "budget.default_cost.output_per_million": {
+        "de": "Standardkosten für 1 Million Output-Tokens, falls Modell nicht gelistet.",
+        "en": "Default cost for 1 million output tokens if model is not listed."
+    },
+    "chromecast.tts_port": {
+        "de": "Lokaler Port für den TTS-Dateiserver zum Streamen an den Chromecast.",
+        "en": "Local port for the TTS file server to stream to Chromecast."
+    },
+    "co_agents.max_concurrent": {
+        "de": "Maximale Anzahl gleichzeitig laufender Co-Agents.",
+        "en": "Maximum number of concurrently running Co-Agents."
+    },
+    "home_assistant.access_token": {
+        "de": "Langlebiges Access Token für Home Assistant Auth.",
+        "en": "Long-lived access token for Home Assistant auth."
+    },
+    "fallback_llm.api_key": {
+        "de": "API Key für das Fallback-LLM.",
+        "en": "API Key for the fallback LLM."
+    },
+    "fallback_llm.base_url": {
+        "de": "Basis-URL für das Fallback-LLM.",
+        "en": "Base URL for the fallback LLM."
+    },
+    "fallback_llm.error_threshold": {
+        "de": "Anzahl der Fehler, nach denen auf das Fallback-Modell gewechselt wird.",
+        "en": "Number of sequential errors before switching to fallback model."
+    },
+    "fallback_llm.model": {
+        "de": "Modellname für das Fallback-LLM.",
+        "en": "Model name for the fallback LLM."
+    },
+    "fallback_llm.probe_interval_seconds": {
+        "de": "Intervall in Sekunden, nach dem versucht wird, das Hauptmodell wiederherzustellen.",
+        "en": "Interval in seconds to probe and try restoring the primary model."
+    },
+    "embeddings.api_key": {
+        "de": "API Key für externe Embedding-Provider.",
+        "en": "API Key for external embedding providers."
+    },
+    "embeddings.external_model": {
+        "de": "Modellname des externen Embedding-Providers.",
+        "en": "Model name of the external embedding provider."
+    },
+    "embeddings.external_url": {
+        "de": "URL des externen Embedding-Providers.",
+        "en": "URL of the external embedding provider."
+    },
+    "embeddings.internal_model": {
+        "de": "Internes FastText-Modell für lokale Embeddings.",
+        "en": "Internal FastText model for local embeddings."
+    },
+    "tts.elevenlabs.api_key": {
+        "de": "ElevenLabs API Key.",
+        "en": "ElevenLabs API Key."
+    },
+    "tts.elevenlabs.model_id": {
+        "de": "ElevenLabs Model ID, z.B. 'eleven_multilingual_v2'.",
+        "en": "ElevenLabs Model ID, e.g. 'eleven_multilingual_v2'."
+    },
+    "tts.elevenlabs.voice_id": {
+        "de": "ElevenLabs Voice ID des Sprechers.",
+        "en": "ElevenLabs Voice ID of the speaker."
+    },
+    "vision.api_key": {
+        "de": "API Key für das Vision-LLM.",
+        "en": "API Key for the vision LLM."
+    },
+    "vision.base_url": {
+        "de": "Basis-URL für das Vision-LLM.",
+        "en": "Base URL for the vision LLM."
+    },
+    "vision.model": {
+        "de": "Modellname für das Vision-LLM.",
+        "en": "Model name for the vision LLM."
+    },
+    "webdav.enabled": {
+        "de": "Aktiviert die WebDAV-Integration.",
+        "en": "Enables the WebDAV integration."
+    },
+    "webdav.url": {
+        "de": "URL des WebDAV-Servers.",
+        "en": "URL of the WebDAV server."
+    },
+    "webdav.username": {
+        "de": "Benutzername für den WebDAV-Server.",
+        "en": "Username for the WebDAV server."
+    },
+    "webdav.password": {
+        "de": "Passwort für den WebDAV-Server.",
+        "en": "Password for the WebDAV server."
+    },
+    "koofr.enabled": {
+        "de": "Aktiviert die Koofr-Cloud-Integration.",
+        "en": "Enables the Koofr cloud integration."
+    },
+    "koofr.base_url": {
+        "de": "Basis-URL des Koofr-Servers (meist https://app.koofr.net).",
+        "en": "Base URL of the Koofr server (usually https://app.koofr.net)."
+    },
+    "koofr.username": {
+        "de": "E-Mail-Adresse für den Koofr-Login.",
+        "en": "Email address for the Koofr login."
+    },
+    "koofr.app_password": {
+        "de": "App-Passwort für die Koofr-API.",
+        "en": "App password for the Koofr API."
+    },
+    "whisper.api_key": {
+        "de": "API Key für den externen Whisper-Provider.",
+        "en": "API Key for the external Whisper provider."
+    },
+    "whisper.base_url": {
+        "de": "Basis-URL für den Whisper-Provider.",
+        "en": "Base URL for the Whisper provider."
+    },
+    "whisper.model": {
+        "de": "Modellname für Whisper, z.B. 'whisper-1'.",
+        "en": "Model name for Whisper, e.g. 'whisper-1'."
+    },
+    "virustotal.api_key": {
+        "de": "API Key für das VirusTotal Tool. WARNUNG: Nutze dieses Tool nicht für Dateien, die persönliche Daten oder sensible Informationen enthalten. Dateien können Sicherheitsforschern zur Verfügung gestellt werden und deine Einreichungen können öffentlich gemacht werden.",
+        "en": "API Key for VirusTotal tool. WARNING: DO NOT use this tool on files containing personal data or sensitive information. Files may be made available to security researchers and your submissions may be made public."
+    },
+    "agent.core_memory_max_entries": {
+        "de": "Maximale Anzahl der Core-Memory-Einträge. 0 = unbegrenzt. Standard: 200.",
+        "en": "Maximum number of core memory entries. 0 = unlimited. Default: 200."
+    },
+    "agent.core_memory_cap_mode": {
+        "de": "Verhalten bei Erreichen des Limits: 'soft' fügt den Eintrag hinzu und gibt eine Warnung zurück, 'hard' lehnt neue Einträge ab. Standard: soft.",
+        "en": "Behavior when the cap is reached: 'soft' adds the entry and returns a warning, 'hard' rejects new entries. Default: soft.",
+        "options": ["soft", "hard"]
+    }
+}
